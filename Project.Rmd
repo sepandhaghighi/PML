@@ -1,0 +1,106 @@
+---
+title: "Machine Learning Course Project"
+author: "Sepand Haghighi"
+date: "Wednesday, March 14, 2015"
+output:
+  html_document:
+    fig_caption: yes
+    keep_md: yes
+    theme: journal
+    toc: yes
+---
+# Introduction          
+according to dataset :     
+Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: exactly according to the specification (Class A), throwing the elbows to the front (Class B), lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D) and throwing the hips to the front (Class E).           
+
+Our goal in this project is predicting class type by other variable .         
+
+#1 - Read Input And Slicing           
+
+
+In this part first we read data from csv files and then create split data to training and testing data set.  60% -- > Training , 20% --> Testing , 20%-->Cross Validation               
+
+```{r First Chunk  , results='hide'   , warning=FALSE }
+library(lattice)
+library(ggplot2)
+library(caret)
+library(randomForest)
+```
+```{r Second Chunk , cache=TRUE , results='hide' , warning= FALSE}
+raw_data<-read.csv("pml-training.csv")
+test_data<-read.csv("pml-testing.csv")
+index<-createDataPartition(raw_data$classe,p=0.6,list=FALSE)
+training<-raw_data[index,]
+temp<-raw_data[-index,]
+index2<-createDataPartition(temp$classe,p=0.5,list=FALSE)
+
+testing<-temp[-index2,]
+cross<-temp[index2,]
+
+
+```
+#2 - Summary Of Dataset  
+
+Summary Of  Training Dataset And Number Of Features :        
+
+```{r Third Chunk}
+
+summary(str(training))
+
+
+```
+          
+          
+
+#3 - Create Model
+For choosing features , first deleted columns with NA values . For this kind of prediction problems most of the times randomforest model is the best.   
+Using num_winodw as predictor because this feature is on a direct direction with each classe  , randomforest as learning method , center and scale as preprocess method and repeatedcv as traincontrol.    
+
+
+```{r  Fourth Chunk, warning=FALSE}
+training$classe<-as.factor(training$classe)
+model<-train(classe~num_window,data=training,method='rf',preProcess=c("center","scale"),trControl = trainControl(method="repeatedcv"))
+
+```
+#4 - Out And In Sample Error Approximation    
+
+In this part without apply this algorithm on testing part , we estimating the out sample error with cross validation . 
+and it is about 99%.
+```{r  Fifth Chunck, warning=FALSE}
+cv_result<-predict(model,cross)
+confusionMatrix(cv_result,cross[,"classe"])
+
+
+```
+#5 - Out Sample Error    
+
+```{r  Sixth Chunk , warning = FALSE}
+
+result<-predict(model,testing)
+
+confusionMatrix(result,testing[,"classe"])
+
+
+```
+#6 - Plotting      
+Plot Each Class Position         
+
+```{r Chunk7}
+qplot(result,testing$classe,xlab="Prediction",ylab="Excepted Value")
+
+
+```
+
+              
+* We can see some misclassification in  "E" Class. 
+
+#7 - 20 Test Result    
+```{r}
+test_result<-predict(model,test_data)
+print(test_result)
+```
+
+#8 - Reference 
+Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.
+
+
